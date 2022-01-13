@@ -26,6 +26,17 @@ class Counter extends ChangeNotifier {
   }
 }
 
+class ThemeModeProvider extends ChangeNotifier {
+  ThemeMode _isDark = ThemeMode.dark;
+
+  ThemeMode get isDark => _isDark;
+
+  void toggle() {
+    _isDark = _isDark == ThemeMode.dark ? ThemeMode.light : ThemeMode.dark;
+    notifyListeners();
+  }
+}
+
 void main() {
   runApp(const Bootstrap());
 }
@@ -35,9 +46,12 @@ class Bootstrap extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (BuildContext context) => Counter(),
-      child: App()
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (BuildContext context) => Counter()),
+        ChangeNotifierProvider(create: (BuildContext context) => ThemeModeProvider()),
+      ],
+      child: const App(),  
     );
   }
 }
@@ -47,12 +61,18 @@ class App extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-      ),
-      home: const Home(),
+    print("Rebuild App");
+    return Selector<ThemeModeProvider, ThemeMode>(
+      builder: (context, data, child) {
+        return MaterialApp(
+          title: 'Flutter Demo',
+          themeMode: data,
+          darkTheme: ThemeData.dark(),
+          theme: ThemeData.light(),
+          home: const Home(),
+        );
+      }, 
+      selector: (context, data) => data.isDark
     );
   }
 }
@@ -71,9 +91,9 @@ class Home extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             const Count(),
-            SizedBox(height: 21),
+            const SizedBox(height: 21),
             const CountHandler(),
-            SizedBox(height: 21),
+            const SizedBox(height: 21),
             ElevatedButton(
               onPressed: () {
                 context.read<Counter>().toggle();
@@ -84,7 +104,19 @@ class Home extends StatelessWidget {
                 }, 
                 selector: (context, data) => data.status
               )
-            )
+            ),
+            SizedBox(height: 21),
+            Consumer<ThemeModeProvider>(
+              builder: (context, data, child) {
+                return OutlinedButton(
+                  onPressed: () {
+                    context.read<ThemeModeProvider>().toggle();
+                    print("Change mode...");
+                  },
+                  child: const Text("Toggle Theme")
+                );
+              }
+            ),
           ],
         ),
       ),
